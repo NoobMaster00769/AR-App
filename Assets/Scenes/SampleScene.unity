@@ -141,7 +141,9 @@ GameObject:
   - component: {fileID: 239754138}
   - component: {fileID: 239754137}
   - component: {fileID: 239754140}
-  - component: {fileID: 239754139}
+  - component: {fileID: 239754141}
+  - component: {fileID: 239754143}
+  - component: {fileID: 239754142}
   m_Layer: 0
   m_Name: XR Origin (Mobile AR)
   m_TagString: Untagged
@@ -335,29 +337,6 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
---- !u!114 &239754139
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 239754127}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d67091397ce544bbfa9ab6d4649b475b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  sampleRate: 25
-  maxDistance: 5
-  sphereRadius: 0.1
-  clusterRadius: 0.35
-  minSamplesPerCluster: 8
-  proxySize: {x: 0.6, y: 0.6, z: 0.3}
-  occlusionLayer:
-    serializedVersion: 2
-    m_Bits: 8
-  sampleLifetime: 2
-  rebuildInterval: 0.4
 --- !u!114 &239754140
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -402,6 +381,52 @@ MonoBehaviour:
     m_MipBias: 0
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
+--- !u!114 &239754141
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 239754127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea4ee2985b9cc461087b894edfc380c5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  objectSize: 0.2
+  followSpeed: 0.2
+  alignWithPlane: 1
+--- !u!114 &239754142
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 239754127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e44ad7229d5394e65be98bdbde688f12, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  cameraTexture: {fileID: 0}
+  modelInputSize: 640
+--- !u!114 &239754143
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 239754127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fa138d76d51a4cda8ca5cb5e2885d41, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  modelAsset: {fileID: 5022602860645237092, guid: ddb4091d6457b46109f8ff87c41ddf8b, type: 3}
+  frameProvider: {fileID: 239754142}
+  confidenceThreshold: 0.5
+  followSpeed: 0.2
+  objectScale: 0.2
 --- !u!1 &477436540
 GameObject:
   m_ObjectHideFlags: 0
