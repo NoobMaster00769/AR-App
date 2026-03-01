@@ -8,12 +8,12 @@ TagManager:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - OcclusionProxy
   - Water
   - UI
-  - WallProxy
-  - DepthOcclusion
-  - FurnitureProxy
+  - 
+  - 
+  - 
   - 
   - 
   - 
