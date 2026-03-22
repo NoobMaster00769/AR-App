@@ -18,7 +18,7 @@ public class VisionReceiver : MonoBehaviour
 
         // ✅ FIX: now x,y exist
         if (bboxUI != null)
-            bboxUI.DrawBox(x, y);
+            bboxUI.DrawBox(0.5f, 0.5f);
 
         if (spawner != null)
             spawner.OnDetection(message);

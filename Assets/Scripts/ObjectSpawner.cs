@@ -85,10 +85,27 @@ public class ObjectSpawner : MonoBehaviour
 
         // ❌ NO PHYSICS DRIFT
         Rigidbody rb = newObj.GetComponent<Rigidbody>();
-        if (rb == null) rb = newObj.AddComponent<Rigidbody>();
+if (rb == null) rb = newObj.AddComponent<Rigidbody>();
 
-        rb.useGravity = false;
-        rb.isKinematic = true;
+// Start stable (keep your current behavior)
+rb.useGravity = false;
+rb.isKinematic = true;
+
+// Add collider if missing
+Collider col = newObj.GetComponent<Collider>();
+if (col == null)
+{
+    BoxCollider bc = newObj.AddComponent<BoxCollider>();
+    bc.size = Vector3.one;
+}
+
+// Better physics feel
+rb.mass = 0.3f;
+rb.drag = 1f;
+rb.angularDrag = 1f;
+
+// 👉 Enable physics after short delay
+StartCoroutine(EnablePhysics(rb, newObj.transform));
 
         spawnedObjects[label].Add(newObj);
 
@@ -105,4 +122,16 @@ public class ObjectSpawner : MonoBehaviour
             default: return defaultPrefab; // ✅ unknown classes
         }
     }
+
+
+    System.Collections.IEnumerator EnablePhysics(Rigidbody rb, Transform objTransform)
+{
+    yield return new WaitForSeconds(0.3f);
+
+    // Detach from anchor so physics can act freely
+    objTransform.parent = null;
+
+    rb.isKinematic = false;
+    rb.useGravity = true;
+}
 }

@@ -410,8 +410,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cba9841a4505f41239753e0214e6be51, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  boxPrefab: {fileID: 1811199725}
-  canvas: {fileID: 304671902}
+  box: {fileID: 1811199725}
 --- !u!114 &304671900
 MonoBehaviour:
   m_ObjectHideFlags: 0
