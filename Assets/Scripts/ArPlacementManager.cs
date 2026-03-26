@@ -5,55 +5,92 @@ using System.Collections.Generic;
 
 public class ARPlacementSystem : MonoBehaviour
 {
-    public GameObject placementPrefab;
-
-    ARRaycastManager raycastManager;
-    ARAnchorManager anchorManager;
+    public ARRaycastManager raycastManager;
 
     static List<ARRaycastHit> hits = new List<ARRaycastHit>();
 
-    void Awake()
-    {
-        raycastManager = GetComponent<ARRaycastManager>();
-        anchorManager = GetComponent<ARAnchorManager>();
-    }
-
     void Update()
     {
-        if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
+        if (Input.touchCount == 0) return;
+
+        Touch touch = Input.GetTouch(0);
+
+        if (touch.phase != TouchPhase.Began) return;
+
+        if (PrefabSelector.selectedPrefab == null)
         {
-            TryPlace(Input.GetTouch(0).position);
+            Debug.Log("❌ No prefab selected");
+            return;
         }
+
+        TryPlace(touch.position);
     }
 
     void TryPlace(Vector2 screenPosition)
     {
-        if (raycastManager.Raycast(screenPosition, hits,
-            TrackableType.PlaneWithinPolygon))
-        {
-            Pose hitPose = hits[0].pose;
+        bool hitPlane = raycastManager.Raycast(
+            screenPosition,
+            hits,
+            TrackableType.PlaneWithinPolygon
+        );
 
-            // Align object to plane
-            Quaternion planeRotation = Quaternion.LookRotation(
-                Vector3.ProjectOnPlane(Camera.main.transform.forward, hitPose.up),
-                hitPose.up
+        GameObject obj;
+
+        if (hitPlane)
+        {
+            Pose pose = hits[0].pose;
+
+            obj = Instantiate(
+                PrefabSelector.selectedPrefab,
+                pose.position,
+                pose.rotation
             );
 
-            hitPose.rotation = planeRotation;
-
-            ARAnchor anchor = anchorManager.AddAnchor(hitPose);
-
-            if (anchor != null)
-            {
-                GameObject obj = Instantiate(placementPrefab, anchor.transform);
-
-                // Scale to 10cm
-                obj.transform.localScale = Vector3.one * 0.1f;
-
-                // Fix floating
-                float height = obj.GetComponent<Renderer>().bounds.size.y;
-                obj.transform.localPosition += Vector3.up * (height / 2f);
-            }
+            SetupPhysics(obj, true);
         }
+        else
+        {
+            // place in air
+            Vector3 pos =
+                Camera.main.transform.position +
+                Camera.main.transform.forward * 1.2f;
+
+            obj = Instantiate(
+                PrefabSelector.selectedPrefab,
+                pos,
+                Quaternion.identity
+            );
+
+            SetupPhysics(obj, false);
+        }
+
+        obj.transform.localScale = Vector3.one * 0.1f;
+
+        if (obj.GetComponent<ARInteractable>() == null)
+            obj.AddComponent<ARInteractable>();
+    }
+
+    void SetupPhysics(GameObject obj, bool onPlane)
+    {
+        Rigidbody rb = obj.GetComponent<Rigidbody>();
+        if (rb == null) rb = obj.AddComponent<Rigidbody>();
+
+        Collider col = obj.GetComponent<Collider>();
+        if (col == null) obj.AddComponent<BoxCollider>();
+
+        if (onPlane)
+        {
+            rb.isKinematic = true;
+            rb.useGravity = false;
+        }
+        else
+        {
+            rb.isKinematic = false;
+            rb.useGravity = true;
+        }
+
+        rb.mass = 0.5f;
+        rb.drag = 0.4f;
+        rb.angularDrag = 0.4f;
     }
 }

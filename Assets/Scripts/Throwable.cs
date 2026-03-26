@@ -17,13 +17,17 @@ public class Throwable : MonoBehaviour
     }
 
     void Throw()
-    {
-        if (rb == null) return;
+{
+    if (rb == null) return;
 
-        Vector3 force =
-            cam.transform.forward * 4f +
-            cam.transform.up * 1.5f;
+    // 🔓 enable physics ONLY when throwing
+    rb.isKinematic = false;
+    rb.useGravity = true;
 
-        rb.AddForce(force, ForceMode.Impulse);
-    }
+    Vector3 force =
+        cam.transform.forward * 4f +
+        cam.transform.up * 1.5f;
+
+    rb.AddForce(force, ForceMode.Impulse);
+}
 }
