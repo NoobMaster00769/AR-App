@@ -87,20 +87,29 @@ public class SnapchatStyleMenu : MonoBehaviour
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    void Start()
+void Start()
+{
+    Debug.Log("🚀 Snapchat menu started. Prefabs count: " + prefabs.Count);
+
+    BuildCards();
+    RegisterScrollDrag();
+
+    if (leftArrow)
     {
-        BuildCards();
-        RegisterScrollDrag();
-
-        if (leftArrow)  leftArrow.onClick.AddListener(() => StepTo(_selectedIndex - 1));
-        if (rightArrow) rightArrow.onClick.AddListener(() => StepTo(_selectedIndex + 1));
-
-        if (distanceLabel) distanceLabel.gameObject.SetActive(false);
-
-        // Select first item
-        StepTo(0, instant: true);
+        leftArrow.onClick.RemoveAllListeners(); // 🔥 IMPORTANT
+        leftArrow.onClick.AddListener(() => StepTo(_selectedIndex - 1));
     }
 
+    if (rightArrow)
+    {
+        rightArrow.onClick.RemoveAllListeners(); // 🔥 IMPORTANT
+        rightArrow.onClick.AddListener(() => StepTo(_selectedIndex + 1));
+    }
+
+    if (distanceLabel) distanceLabel.gameObject.SetActive(false);
+
+    StepTo(0, instant: true);
+}
     // ─────────────────────────────────────────────────────────────────────────
     void Update()
     {
@@ -158,19 +167,29 @@ public class SnapchatStyleMenu : MonoBehaviour
     }
 
     // ── Step to index ─────────────────────────────────────────────────────────
-    public void StepTo(int index, bool instant = false)
+public void StepTo(int index, bool instant = false)
+{
+    if (prefabs.Count == 0)
     {
-        index = Mathf.Clamp(index, 0, prefabs.Count - 1);
-        _selectedIndex = index;
-        PrefabSelector.Select(prefabs[index]);
-
-        if (instant) ScrollToIndex(index, snap: true);
-
-        // Arrow visibility
-        if (leftArrow)  leftArrow.interactable  = index > 0;
-        if (rightArrow) rightArrow.interactable = index < prefabs.Count - 1;
+        Debug.LogError("❌ Prefabs list is EMPTY");
+        return;
     }
 
+    index = Mathf.Clamp(index, 0, prefabs.Count - 1);
+
+    _selectedIndex = index;
+
+    // 🔥 DEBUG (THIS WILL TELL US EVERYTHING)
+    Debug.Log("👉 Selected index: " + index + " | " + prefabs[index].name);
+
+    PrefabSelector.Select(prefabs[index]);
+
+    if (instant)
+        ScrollToIndex(index, snap: true);
+
+    if (leftArrow) leftArrow.interactable = index > 0;
+    if (rightArrow) rightArrow.interactable = index < prefabs.Count - 1;
+}
     // ── Visuals ───────────────────────────────────────────────────────────────
     void ApplyCarouselVisuals()
     {

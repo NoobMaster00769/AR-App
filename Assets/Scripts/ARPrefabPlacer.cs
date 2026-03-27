@@ -4,55 +4,41 @@ using UnityEngine.XR.ARSubsystems;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
 
-/// <summary>
-/// FIXED ARPrefabPlacer — attach to XR Origin (Mobile AR)
-///
-/// Fixes:
-///   1. ContinuousDynamic collision — objects no longer fall through AR planes
-///   2. Bounds-aware scaling — object appears the correct real-world size regardless of prefab scale
-///   3. Two-finger pinch while one finger holds → push/pull air placement distance (0.5m – 8m)
-///
-/// INSPECTOR SETUP:
-///   raycastManager  → ARRaycastManager on XR Origin
-///   placementReticle → PlacementReticle GameObject
-///   selectionMenu   → SnapchatStyleMenu component
-///   targetRealWorldSize → desired height in metres (e.g. 0.15 for a 15 cm bottle)
-/// </summary>
 public class ARPrefabPlacer : MonoBehaviour
 {
     [Header("References")]
-    public ARRaycastManager  raycastManager;
-    public PlacementReticle  placementReticle;
-    public SnapchatStyleMenu selectionMenu;   // optional — for distance label
+    public ARRaycastManager raycastManager;
+    public PlacementReticle placementReticle;
+    public SnapchatStyleMenu selectionMenu;
 
     [Header("Air Placement Distance")]
-    public float airDistance      = 2.0f;
-    public float minAirDistance   = 0.5f;
-    public float maxAirDistance   = 8.0f;
+    public float airDistance = 2.0f;
+    public float minAirDistance = 0.5f;
+    public float maxAirDistance = 8.0f;
     public float pinchSensitivity = 0.018f;
 
     [Header("Scale")]
-    [Tooltip("Desired real-world size of the largest axis in metres")]
     public float targetRealWorldSize = 0.15f;
-    public float fallbackScale       = 0.12f;
+    public float fallbackScale = 0.12f;
 
     [Header("Physics")]
-    public float mass        = 0.5f;
-    public float drag        = 0.4f;
+    public float mass = 0.5f;
+    public float drag = 0.4f;
     public float angularDrag = 0.4f;
 
-    // ─────────────────────────────────────────────────────────────────────────
     static readonly List<ARRaycastHit> _hits = new();
     float _prevPinchDist = -1f;
 
-    // ─────────────────────────────────────────────────────────────────────────
+    float lastTapTime = 0f;
+    float tapCooldown = 0.2f;
+
     void Update()
     {
         HandlePinch();
         HandleTap();
     }
 
-    // ── Two-finger pinch: adjust air distance ─────────────────────────────────
+    // ───────────────────────── PINCH ─────────────────────────
     void HandlePinch()
     {
         if (Input.touchCount != 2)
@@ -65,7 +51,11 @@ public class ARPrefabPlacer : MonoBehaviour
             Input.GetTouch(0).position,
             Input.GetTouch(1).position);
 
-        if (_prevPinchDist < 0f) { _prevPinchDist = dist; return; }
+        if (_prevPinchDist < 0f)
+        {
+            _prevPinchDist = dist;
+            return;
+        }
 
         float delta = dist - _prevPinchDist;
         _prevPinchDist = dist;
@@ -77,17 +67,29 @@ public class ARPrefabPlacer : MonoBehaviour
         selectionMenu?.ShowDistanceLabel(airDistance);
     }
 
-    // ── Single tap: place object ───────────────────────────────────────────────
+    // ───────────────────────── TAP ─────────────────────────
     void HandleTap()
     {
         if (Input.touchCount != 1) return;
+
         Touch touch = Input.GetTouch(0);
+
         if (touch.phase != TouchPhase.Began) return;
 
-        if (EventSystem.current != null &&
-            EventSystem.current.IsPointerOverGameObject(touch.fingerId)) return;
+        // ✅ Prevent double taps
+        if (Time.time - lastTapTime < tapCooldown) return;
+        lastTapTime = Time.time;
 
-        if (PrefabSelector.SelectedPrefab == null) return;
+        // ✅ STRONG UI BLOCK (IMPORTANT FIX)
+        if (IsTouchOverUI(touch)) return;
+
+        if (PrefabSelector.SelectedPrefab == null)
+        {
+            Debug.LogWarning("❌ No prefab selected");
+            return;
+        }
+
+        Debug.Log("🔥 Spawning: " + PrefabSelector.SelectedPrefab.name);
 
         bool hitPlane = raycastManager.Raycast(
             touch.position, _hits, TrackableType.PlaneWithinPolygon);
@@ -98,36 +100,59 @@ public class ARPrefabPlacer : MonoBehaviour
             PlaceInAir();
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // ───────────────────────── UI BLOCK FIX ─────────────────────────
+    bool IsTouchOverUI(Touch touch)
+    {
+        if (EventSystem.current == null) return false;
+
+        PointerEventData eventData = new PointerEventData(EventSystem.current);
+        eventData.position = touch.position;
+
+        var results = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(eventData, results);
+
+        return results.Count > 0;
+    }
+
+    // ───────────────────────── PLACEMENT ─────────────────────────
     void PlaceOnSurface(Pose pose, float dist)
     {
-        var obj = SpawnObject(pose.position, pose.rotation, dist);
-        var rb  = SetupRigidbody(obj);
+        var obj = SpawnObject(pose.position, pose.rotation);
+
+        if (obj == null) return;
+
+        var rb = SetupRigidbody(obj);
         rb.isKinematic = true;
-        rb.useGravity  = false;
+        rb.useGravity = false;
     }
 
     void PlaceInAir()
     {
         var cam = Camera.main;
-        var pos = cam.transform.position + cam.transform.forward * airDistance;
-        var obj = SpawnObject(pos, Quaternion.identity, airDistance);
-        var rb  = SetupRigidbody(obj);
 
-        rb.isKinematic            = false;
-        rb.useGravity             = true;
-        // ★ FIX 1 — prevents tunnelling through thin AR plane colliders
+        var pos = cam.transform.position + cam.transform.forward * airDistance;
+
+        var obj = SpawnObject(pos, Quaternion.identity);
+
+        if (obj == null) return;
+
+        var rb = SetupRigidbody(obj);
+
+        rb.isKinematic = false;
+        rb.useGravity = true;
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    GameObject SpawnObject(Vector3 pos, Quaternion rot, float distFromCam)
+    // ───────────────────────── SPAWN ─────────────────────────
+    GameObject SpawnObject(Vector3 pos, Quaternion rot)
     {
+        if (PrefabSelector.SelectedPrefab == null) return null;
+
         var obj = Instantiate(PrefabSelector.SelectedPrefab, pos, rot);
 
-        // ★ FIX 2 — compute scale from actual mesh bounds, not a hardcoded value
-        obj.transform.localScale = Vector3.one;             // reset first
-        float scale = ComputeNormalisedScale(obj);
+        obj.transform.localScale = Vector3.one;
+
+        float scale = ComputeScale(obj);
         obj.transform.localScale = Vector3.one * scale;
 
         if (!obj.GetComponent<ARObjectManipulator>())
@@ -136,39 +161,43 @@ public class ARPrefabPlacer : MonoBehaviour
         return obj;
     }
 
-    // Measures the prefab's actual renderer bounds after resetting scale to 1,
-    // then returns the scale factor that makes its largest axis = targetRealWorldSize.
-    float ComputeNormalisedScale(GameObject obj)
+    float ComputeScale(GameObject obj)
     {
         var renderers = obj.GetComponentsInChildren<Renderer>();
         if (renderers.Length == 0) return fallbackScale;
 
         Bounds b = renderers[0].bounds;
-        foreach (var r in renderers) b.Encapsulate(r.bounds);
+        foreach (var r in renderers)
+            b.Encapsulate(r.bounds);
 
         float largest = Mathf.Max(b.size.x, b.size.y, b.size.z);
+
         if (largest < 0.0001f) return fallbackScale;
 
         return Mathf.Clamp(targetRealWorldSize / largest, 0.005f, 3f);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // ───────────────────────── PHYSICS ─────────────────────────
     Rigidbody SetupRigidbody(GameObject obj)
     {
         var rb = obj.GetComponent<Rigidbody>() ?? obj.AddComponent<Rigidbody>();
 
-        rb.mass        = mass;
-        rb.drag        = drag;
+        rb.mass = mass;
+        rb.drag = drag;
         rb.angularDrag = angularDrag;
 
-        bool hasCollider = obj.GetComponent<Collider>() != null ||
-                           obj.GetComponentInChildren<Collider>() != null;
+        bool hasCollider =
+            obj.GetComponent<Collider>() != null ||
+            obj.GetComponentInChildren<Collider>() != null;
+
         if (!hasCollider)
         {
-            Debug.LogWarning($"[ARPlacer] No collider found on {obj.name} — adding BoxCollider");
+            Debug.LogWarning($"[ARPlacer] No collider on {obj.name}, adding BoxCollider");
             obj.AddComponent<BoxCollider>();
         }
 
         return rb;
     }
+
+
 }
