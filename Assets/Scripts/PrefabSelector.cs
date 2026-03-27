@@ -1,12 +1,16 @@
 using UnityEngine;
 
-public class PrefabSelector : MonoBehaviour
+/// <summary>
+/// Static shared state — no GameObject required.
+/// Replace your old PrefabSelector.cs with this file.
+/// </summary>
+public static class PrefabSelector
 {
-    public static GameObject selectedPrefab;
+    public static GameObject SelectedPrefab { get; private set; }
 
-    public void SelectPrefab(GameObject prefab)
+    public static void Select(GameObject prefab)
     {
-        selectedPrefab = prefab;
-        Debug.Log("✅ Selected: " + prefab.name);
+        SelectedPrefab = prefab;
+        Debug.Log($"[PrefabSelector] Selected: {prefab?.name ?? "null"}");
     }
 }
