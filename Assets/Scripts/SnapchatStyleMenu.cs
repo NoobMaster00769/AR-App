@@ -72,7 +72,6 @@ public class SnapchatStyleMenu : MonoBehaviour
     {
         ApplyCarouselVisuals();
 
-        // Only snap scroll position — never change _selectedIndex here
         if (!_isDragging) SnapToSelected();
 
         if (_distanceTimer > 0f)
@@ -83,39 +82,57 @@ public class SnapchatStyleMenu : MonoBehaviour
         }
     }
 
-    void BuildCards()
+void BuildCards()
+{
+    foreach (Transform t in contentParent) Destroy(t.gameObject);
+    _cards.Clear();
+
+    for (int i = 0; i < prefabs.Count; i++)
     {
-        foreach (Transform t in contentParent) Destroy(t.gameObject);
-        _cards.Clear();
+        int idx = i;
+        var go = Instantiate(cardPrefab, contentParent);
+        go.name = $"Card_{prefabs[i].name}";
 
-        for (int i = 0; i < prefabs.Count; i++)
+        var bg = go.GetComponent<Image>();
+        if (bg) bg.color = new Color(0.15f, 0.15f, 0.15f, 0.85f);
+
+        var iconT = go.transform.Find("Icon");
+        if (iconT) iconT.gameObject.SetActive(false);
+
+        var label = go.GetComponentInChildren<TMP_Text>(true);
+        if (label)
         {
-            int idx = i;
-            var go = Instantiate(cardPrefab, contentParent);
-            go.name = $"Card_{prefabs[i].name}";
+            label.text              = prefabs[i].name;
+            label.color             = Color.white;
+            label.enableAutoSizing  = true;
+            label.fontSizeMin       = 8f;
+            label.fontSizeMax       = 18f;
+            label.enableWordWrapping = false;
+            label.overflowMode      = TextOverflowModes.Ellipsis;
+            label.alignment         = TMPro.TextAlignmentOptions.Center;
 
-            var label = go.GetComponentInChildren<TMP_Text>(true);
-            if (label) label.text = prefabs[i].name;
-
-            var iconT = go.transform.Find("Icon");
-            if (iconT && icons != null && i < icons.Count && icons[i])
-                iconT.GetComponent<Image>().sprite = icons[i];
-
-            Image ring = null;
-            var ringT = go.transform.Find("SelectedRing");
-            if (ringT) ring = ringT.GetComponent<Image>();
-            if (ring) ring.color = new Color(ring.color.r, ring.color.g, ring.color.b, 0f);
-
-            go.GetComponent<Button>().onClick.AddListener(() => StepTo(idx));
-
-            _cards.Add(new CardEntry
-            {
-                rect  = go.GetComponent<RectTransform>(),
-                group = go.GetComponent<CanvasGroup>() ?? go.AddComponent<CanvasGroup>(),
-                ring  = ring
-            });
+            var rt      = label.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = new Vector2(6f, 6f);
+            rt.offsetMax = new Vector2(-6f, -6f);
         }
+
+        Image ring = null;
+        var ringT = go.transform.Find("SelectedRing");
+        if (ringT) ring = ringT.GetComponent<Image>();
+        if (ring) ring.color = new Color(ring.color.r, ring.color.g, ring.color.b, 0f);
+
+        go.GetComponent<Button>().onClick.AddListener(() => StepTo(idx));
+
+        _cards.Add(new CardEntry
+        {
+            rect  = go.GetComponent<RectTransform>(),
+            group = go.GetComponent<CanvasGroup>() ?? go.AddComponent<CanvasGroup>(),
+            ring  = ring
+        });
     }
+}
 
     public void StepTo(int index, bool instant = false)
     {
@@ -181,8 +198,6 @@ public class SnapchatStyleMenu : MonoBehaviour
                 Time.deltaTime * snapSpeed);
     }
 
-    // After dragging ends, snap to whichever card is closest — this is the
-    // ONLY place selection changes from physical scroll position
     void OnDragEnd()
     {
         _isDragging = false;
@@ -215,7 +230,7 @@ public class SnapchatStyleMenu : MonoBehaviour
 
         var end = new UnityEngine.EventSystems.EventTrigger.Entry
             { eventID = UnityEngine.EventSystems.EventTriggerType.EndDrag };
-        end.callback.AddListener(_ => OnDragEnd()); // ← calls OnDragEnd, not just a flag
+        end.callback.AddListener(_ => OnDragEnd()); 
         trigger.triggers.Add(end);
     }
 

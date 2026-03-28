@@ -1,4 +1,4 @@
-// ARObjectManipulator.cs — now purely a per-object component, no touch handling
+
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
@@ -18,9 +18,7 @@ public class ARObjectManipulator : MonoBehaviour
     float _prevPinchDist      = -1f;
     float _prevTwoFingerAngle = float.NaN;
 
-    // ── Surface placement support ─────────────────────────────────────────────
-    // Returns world-space Y of the top of this object's bounding box.
-    // ARTouchRouter uses this to know where to spawn something ON TOP of us.
+    
     public float GetTopY()
     {
         var rends = GetComponentsInChildren<Renderer>();
@@ -35,7 +33,7 @@ public class ARObjectManipulator : MonoBehaviour
         return new Vector3(worldHitPoint.x, GetTopY(), worldHitPoint.z);
     }
 
-    // ── Highlight state ───────────────────────────────────────────────────────
+   
     bool _isHighlighted = false;
     readonly List<(Renderer r, Material mat, Color orig)> _origColors = new();
 
@@ -49,8 +47,7 @@ public class ARObjectManipulator : MonoBehaviour
             _origColors.Clear();
             foreach (var r in GetComponentsInChildren<Renderer>())
             {
-                // Use sharedMaterial instances so we don't permanently dirty them
-                var mats = r.materials; // this returns copies (instanced)
+                var mats = r.materials;
                 foreach (var mat in mats)
                 {
                     _origColors.Add((r, mat, mat.color));
@@ -84,7 +81,7 @@ public class ARObjectManipulator : MonoBehaviour
         _rb.useGravity  = false;
     }
 
-    // ── Called by ARTouchRouter ───────────────────────────────────────────────
+    
     public void BeginDrag(float hitDistance)
     {
         _isHeld   = true;
@@ -106,7 +103,6 @@ public class ARObjectManipulator : MonoBehaviour
         _velocity = (transform.position - _prevPos) / Time.deltaTime;
         _prevPos  = transform.position;
 
-        // Prefer snapping to AR plane under finger
         var arHits = new List<ARRaycastHit>();
         if (rrm != null && rrm.Raycast(screenPos, arHits, TrackableType.PlaneWithinPolygon))
         {
@@ -121,7 +117,6 @@ public class ARObjectManipulator : MonoBehaviour
             }
         }
 
-        // No plane — move at held distance from camera
         Ray     ray    = Camera.main.ScreenPointToRay(screenPos);
         Vector3 target = ray.GetPoint(_holdDist);
         transform.position = Vector3.Lerp(transform.position, target, Time.deltaTime * 30f);
@@ -141,7 +136,6 @@ public class ARObjectManipulator : MonoBehaviour
             _rb.velocity        = _velocity * 0.5f;
             _rb.angularVelocity = Random.insideUnitSphere * Mathf.Clamp(speed * 0.3f, 0f, 5f);
         }
-        // No else-branch freezing — just let it fall/settle naturally
 
         StartCoroutine(SettleOnLand());
     }
@@ -151,23 +145,20 @@ public class ARObjectManipulator : MonoBehaviour
     IEnumerator SettleOnLand()
     {
         yield return new WaitForSeconds(0.15f);
-
         while (true)
         {
             yield return new WaitForSeconds(0.05f);
             if (_isHeld) continue;
-
             if (_rb.velocity.magnitude < 0.05f && _rb.angularVelocity.magnitude < 0.05f)
             {
                 _rb.velocity        = Vector3.zero;
                 _rb.angularVelocity = Vector3.zero;
-                // DO NOT set isKinematic = true — let Unity sleep it
                 yield break;
             }
         }
     }
 
-    // ── Two finger gestures ───────────────────────────────────────────────────
+    
     public void HandleTwoFingerGesture()
     {
         if (Input.touchCount < 2) return;
@@ -202,30 +193,27 @@ public class ARObjectManipulator : MonoBehaviour
         transform.Rotate(Vector3.up, -delta, Space.World);
     }
 
-    // ── Impulse (flick / force push from ARTouchRouter) ───────────────────────
+    
     public void ApplyImpulse(Vector3 worldForce)
     {
         StopAllCoroutines();
         _rb.isKinematic = false;
         _rb.useGravity  = true;
-        _rb.velocity    = Vector3.zero;
+        _rb.velocity        = Vector3.zero;
         _rb.angularVelocity = Vector3.zero;
         _rb.AddForce(worldForce, ForceMode.Impulse);
         _rb.angularVelocity = Random.insideUnitSphere * Mathf.Clamp(worldForce.magnitude * 0.4f, 0f, 6f);
         StartCoroutine(SettleOnLand());
     }
 
-    // ── Visual feedback ───────────────────────────────────────────────────────
+    
     public void OnSelected()
     {
         StopAllCoroutines();
         StartCoroutine(PulseScale());
     }
 
-    public void OnDeselected()
-    {
-        SetHighlight(false);
-    }
+    public void OnDeselected() => SetHighlight(false);
 
     IEnumerator PulseScale()
     {

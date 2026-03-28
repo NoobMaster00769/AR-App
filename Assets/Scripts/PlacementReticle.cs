@@ -23,7 +23,7 @@ public class PlacementReticle : MonoBehaviour
     void Start()
     {
         _cam = Camera.main;
-        Show(false); // start hidden
+        Show(false); 
     }
 
     void Update()
@@ -65,7 +65,7 @@ public class PlacementReticle : MonoBehaviour
         }
     }
 
-    // ✅ CLEAN PUBLIC METHOD (THIS IS THE FIX)
+   
     public void Show(bool visible)
     {
         if (reticleVisual != null)

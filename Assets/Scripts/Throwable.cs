@@ -20,7 +20,6 @@ public class Throwable : MonoBehaviour
 {
     if (rb == null) return;
 
-    // 🔓 enable physics ONLY when throwing
     rb.isKinematic = false;
     rb.useGravity = true;
 

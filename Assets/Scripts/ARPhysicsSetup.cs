@@ -1,4 +1,4 @@
-// ARPhysicsSetup.cs
+
 using UnityEngine;
 
 public class ARPhysicsSetup : MonoBehaviour
@@ -9,6 +9,6 @@ public class ARPhysicsSetup : MonoBehaviour
         Physics.defaultSolverIterations         = 12;
         Physics.defaultSolverVelocityIterations = 6;
         Physics.bounceThreshold                 = 0.5f;
-        Physics.sleepThreshold                  = 0.005f;  // was 0.002f
+        Physics.sleepThreshold                  = 0.005f;
     }
 }
